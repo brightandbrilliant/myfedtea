@@ -140,6 +140,7 @@ def build_edge_type_alignment(alignment, nClusters):
 
     return edge_mapping
 
+
 def build_positive_edge_dict(data, cluster_labels):
     edge_dict = defaultdict(list)
     edge_index = data.edge_index

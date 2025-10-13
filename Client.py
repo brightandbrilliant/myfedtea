@@ -8,7 +8,7 @@ class Client:
     def __init__(self, client_id, data, encoder, decoder, device='cpu', lr=0.005,
                  weight_decay=1e-4, max_grad_norm=30000.0,
                  # 引入手动设定的增强损失权重
-                 pos_augment_weight=0.1,neg_augment_weight=0.1):
+                 pos_augment_weight=0.1, neg_augment_weight=0.1, mu=0.01):
         self.client_id = client_id
         self.data = data.to(device)
         self.device = device
@@ -30,6 +30,8 @@ class Client:
         self.augmented_neg_embeddings = None
         self.max_grad_norm = max_grad_norm
         self.soft_classify = 1.0
+        self.mu = mu
+        self.last_encoder_state = None
 
     def train(self):
         """常规训练：只使用原始正边和负采样的负边"""
@@ -56,6 +58,28 @@ class Client:
         pred = torch.cat([pos_pred, neg_pred], dim=0)
 
         loss = self.criterion(pred.squeeze(), labels)
+
+        # --- L_reg (FedProx-like 正则项) 计算 ---
+        loss_reg = 0.0
+        # 只有当全局状态已被设置且 mu > 0 时才计算正则项
+        if self.last_encoder_state and self.mu > 0:
+            # 遍历当前本地 Encoder 的参数
+            for name, param in self.encoder.named_parameters():
+                # 从 last_encoder_state 获取对应的全局参数副本
+                # 必须将其移动到当前参数所在的设备
+                global_param = self.last_encoder_state[name].to(param.device)
+
+                # 计算 L2 距离的平方和: ||w_local - w_global||^2
+                # 使用 .float() 避免潜在的 dtype 不匹配问题
+                loss_reg += torch.sum(torch.pow(param.float() - global_param.float(), 2))
+
+            # L_reg = (mu / 2) * ||w_local - w_global||^2
+            loss_reg = (self.mu / 2.0) * loss_reg
+        # --- L_reg 计算结束 ---
+
+        # 2. 计算总损失
+        loss = loss + loss_reg
+
         loss.backward()
         torch.nn.utils.clip_grad_norm_(
             list(self.encoder.parameters()) + list(self.decoder.parameters()),
