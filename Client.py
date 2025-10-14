@@ -102,7 +102,7 @@ class Client:
             return 0.0
 
         # 根据你的建议，pos增强训练时，仍保持 encoder.eval()
-        # self.encoder.train()
+        self.encoder.eval()
         self.decoder.train()
         self.optimizer.zero_grad()
 
@@ -139,7 +139,7 @@ class Client:
             print("augment error")
             return 0.0
 
-        # self.encoder.train()
+        self.encoder.eval()
         self.decoder.train()
         self.optimizer.zero_grad()
 

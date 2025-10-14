@@ -307,7 +307,7 @@ if __name__ == "__main__":
             for i, client in enumerate(clients):
                 client.last_decoder_state = {k: v.cpu().clone() for k, v in decoder_states[i].items()}
 
-        avg_acc, avg_recall, avg_prec, avg_f1 = evaluate_all_clients(clients, use_test=False)
+        avg_acc, avg_recall, avg_prec, avg_f1 = evaluate_all_clients(clients, use_test=True)
 
 
         if avg_f1 > best_f1:
@@ -316,6 +316,7 @@ if __name__ == "__main__":
             best_decoder_states = decoder_states
             best_rnd = rnd
             print("===> New best model saved")
+            avg_acc, avg_recall, avg_prec, avg_f1 = evaluate_all_clients(clients, use_test=True)
 
     print("\n================ Federated Training Finished ================")
     for i, client in enumerate(clients):
