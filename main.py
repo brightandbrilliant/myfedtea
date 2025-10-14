@@ -191,6 +191,8 @@ if __name__ == "__main__":
     anchor_raw = read_anchors(anchor_path)
     anchor_pairs = parse_anchors(anchor_raw, point=9086)
 
+    clients[0].encoder.eval()
+    clients[1].encoder.eval()
     z1 = clients[0].encoder(clients[0].data.x, clients[0].data.edge_index).detach()
     z2 = clients[1].encoder(clients[1].data.x, clients[1].data.edge_index).detach()
     results = compute_anchor_embedding_differences(z1, z2, anchor_pairs, device=device)
@@ -223,6 +225,8 @@ if __name__ == "__main__":
     for rnd in range(1, num_rounds + 1):
         print(f"\n--- Round {rnd} ---")
 
+        clients[0].encoder.eval()
+        clients[1].encoder.eval()
         z_others = [client.encoder(client.data.x, client.data.edge_index).detach() for client in clients]
 
         for i, client in enumerate(clients):
@@ -270,10 +274,14 @@ if __name__ == "__main__":
             if rnd >= start_rnd and rnd % enhance_interval == 0:
                 # print("Negative Augmentation Implementing.")
                 client.train_on_augmented_negatives()
+                client.encoder.eval()
+                client.decoder.eval()
                 fn_fp_ignore_flags[i] = True
             if rnd >= start_rnd and rnd % enhance_interval == enhance_interval // 2:
                 # print("Positive Augmentation Implementing.")
                 client.train_on_augmented_positives()
+                client.encoder.eval()
+                client.decoder.eval()
                 fn_fp_ignore_flags[i] = True
 
             loss_avg /= training_params['local_epochs']
@@ -292,8 +300,9 @@ if __name__ == "__main__":
             global_decoder_state = average_state_dicts(decoder_states)
             for client in clients:
                 client.set_decoder_state(global_decoder_state)
+                client.last_decoder_state = {k: v.cpu().clone() for k, v in global_decoder_state.items()}
             decoder_states = [client.get_decoder_state() for client in clients]
-            client.last_decoder_state = {k: v.cpu().clone() for k, v in global_decoder_state.items()}
+
         else:
             for i, client in enumerate(clients):
                 client.last_decoder_state = {k: v.cpu().clone() for k, v in decoder_states[i].items()}
