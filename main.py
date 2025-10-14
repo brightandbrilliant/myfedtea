@@ -312,11 +312,13 @@ if __name__ == "__main__":
 
         if avg_f1 > best_f1:
             best_f1 = avg_f1
-            best_encoder_state = global_encoder_state
-            best_decoder_states = decoder_states
+            best_encoder_state = {k: v.clone().detach() for k, v in global_encoder_state.items()}
+            best_decoder_states = []
+            for state in decoder_states:
+                cloned_state = {k: v.clone().detach() for k, v in state.items()}
+                best_decoder_states.append(cloned_state)
             best_rnd = rnd
             print("===> New best model saved")
-            avg_acc, avg_recall, avg_prec, avg_f1 = evaluate_all_clients(clients, use_test=True)
 
     print("\n================ Federated Training Finished ================")
     for i, client in enumerate(clients):
