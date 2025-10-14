@@ -158,8 +158,8 @@ if __name__ == "__main__":
     num_rounds = 700
     top_fp_fn_percent = 0.3
     enhance_interval = 30
-    top_k_pos_per_type = 200
-    top_k_neg_per_type = 200
+    top_k_pos_per_type = 100
+    top_k_neg_per_type = 100
     nClusters = 10
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

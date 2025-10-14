@@ -8,7 +8,7 @@ class Client:
     def __init__(self, client_id, data, encoder, decoder, device='cpu', lr=0.005,
                  weight_decay=1e-4, max_grad_norm=30000.0,
                  # 引入手动设定的增强损失权重
-                 pos_augment_weight=0.1, neg_augment_weight=0.1, mu=0.01):
+                 pos_augment_weight=0.2, neg_augment_weight=0.2, mu=0.01):
         self.client_id = client_id
         self.data = data.to(device)
         self.device = device
