@@ -131,6 +131,7 @@ def pretrain_fedavg(clients, pretrain_rounds, training_params):
             client.set_encoder_state(global_encoder_state)
             client.set_decoder_state(global_decoder_state)
             client.last_encoder_state = {k: v.cpu().clone() for k, v in global_encoder_state.items()}
+            client.last_decoder_state = {k: v.cpu().clone() for k, v in global_decoder_state.items()}
 
     print("========= Phase 1: FedAvg Pre-training Finished =========")
     return
@@ -292,8 +293,13 @@ if __name__ == "__main__":
             for client in clients:
                 client.set_decoder_state(global_decoder_state)
             decoder_states = [client.get_decoder_state() for client in clients]
+            client.last_decoder_state = {k: v.cpu().clone() for k, v in global_decoder_state.items()}
+        else:
+            for i, client in enumerate(clients):
+                client.last_decoder_state = {k: v.cpu().clone() for k, v in decoder_states[i].items()}
 
         avg_acc, avg_recall, avg_prec, avg_f1 = evaluate_all_clients(clients, use_test=False)
+
 
         if avg_f1 > best_f1:
             best_f1 = avg_f1
