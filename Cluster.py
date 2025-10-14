@@ -170,6 +170,7 @@ def gnn_embedding_kmeans_cluster(data, encoder, n_clusters=10, device='cpu'):
     """
     encoder = encoder.to(device)
     data = data.to(device)
+    encoder.eval()
 
     # 1. 生成 GNN 嵌入
     with torch.no_grad():
@@ -241,6 +242,7 @@ def gnn_embedding_spectral_cluster(data, encoder, n_clusters=10, device='cpu'):
     """
     encoder = encoder.to(device)
     data = data.to(device)
+    encoder.eval()
 
     # 1. 生成 GNN 嵌入
     with torch.no_grad():
