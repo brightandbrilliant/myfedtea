@@ -250,6 +250,7 @@ if __name__ == "__main__":
                     aggregated_fn,
                     edge_dicts[j],
                     edge_alignment1 if i == 0 else edge_alignment2,
+                    client_j=clients[j],
                     top_k=top_k_pos_per_type
                 )
 
