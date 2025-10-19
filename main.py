@@ -281,7 +281,6 @@ if __name__ == "__main__":
                                                                                               device)
             edge_alignment1, edge_alignment2 = edge_alignments[0], edge_alignments[1]
 
-
         for i, client in enumerate(clients):
             if rnd >= start_rnd and fn_fp_ignore_flags[i] is False:
                 fn, fp = client.analyze_prediction_errors(cluster_labels[i], use_test=False,
