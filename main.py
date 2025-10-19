@@ -275,7 +275,7 @@ if __name__ == "__main__":
         clients[1].encoder.eval()
         z_others = [client.encoder(client.data.x, client.data.edge_index).detach() for client in clients]
 
-        if rnd % start_rnd == 0:
+        if rnd >= start_rnd and rnd % (enhance_interval*5) == 0:
             cluster_labels, edge_dicts, client_pos_edges, edge_alignments = Cluster_and_Build(clients, anchor_path,
                                                                                               anchor_point, nClusters,
                                                                                               device)
