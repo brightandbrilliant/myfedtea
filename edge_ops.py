@@ -42,6 +42,7 @@ def judge_high_confidence_positive_edges(client_j, u, v, threshold_logit=3.0):
         else:
             return False, logit.item()
 
+
 def extract_augmented_pos_edges(target_fn_types, edge_dict, edge_alignment, client_j, top_k=100):
     candidate_edges = []
 
@@ -54,10 +55,6 @@ def extract_augmented_pos_edges(target_fn_types, edge_dict, edge_alignment, clie
 
             # 根据权重计算应抽取的数量
             num_to_select = int(top_k * weight)
-
-            # 简单地将所有边都视为候选，并在后续打乱中随机选择
-            # 原始逻辑是取前 K' 个，这里我们简化，全部加入，依赖打乱实现随机性
-            # 为了公平性，我们在这里进行一次随机抽样，而不是取前 K' 个
 
             if edges_of_type:
                 # 随机打乱并抽取 num_to_select 条

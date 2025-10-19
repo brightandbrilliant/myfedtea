@@ -137,6 +137,45 @@ def pretrain_fedavg(clients, pretrain_rounds, training_params):
     return
 
 
+def Cluster_and_Build(clients, anchor_point, nClusters, device):
+    cluster_labels = []
+
+    print("==================Clustering Start==================")
+    # 1. 重新进行聚类，使用预训练后的编码器和新的聚类函数
+    for client in clients:
+        labels, _ = gnn_embedding_kmeans_cluster(client.data, client.encoder, n_clusters=nClusters, device=device)
+        cluster_labels.append(labels)
+
+    # 2. 重新构建 edge_dicts 和对齐矩阵
+    edge_dicts = [build_positive_edge_dict(clients[i].data, cluster_labels[i]) for i in range(len(clients))]
+
+    client_pos_edges = [
+        set(map(tuple, clients[k].data.edge_index.t().tolist())) for k in range(len(clients))
+    ]
+
+    anchor_raw = read_anchors(anchor_path)
+    anchor_pairs = parse_anchors(anchor_raw, point=anchor_point)
+
+    clients[0].encoder.eval()
+    clients[1].encoder.eval()
+    z1 = clients[0].encoder(clients[0].data.x, clients[0].data.edge_index).detach()
+    z2 = clients[1].encoder(clients[1].data.x, clients[1].data.edge_index).detach()
+    results = compute_anchor_embedding_differences(z1, z2, anchor_pairs, device=device)
+
+    print("==================Alignment Start==================")
+    co_matrix = build_cluster_cooccurrence_matrix(cluster_labels[0], cluster_labels[1], results, nClusters,
+                                                  top_percent=0.75)
+    alignment1 = extract_clear_alignments(co_matrix, min_ratio=0.25, min_count=30, mode=1)
+    alignment2 = extract_clear_alignments(co_matrix, min_ratio=0.25, min_count=30, mode=2)
+    edge_alignment1 = build_edge_type_alignment(alignment1, nClusters)
+    edge_alignment2 = build_edge_type_alignment(alignment2, nClusters)
+    edge_alignments = [edge_alignment1, edge_alignment2]
+
+    return edge_dicts, client_pos_edges, edge_alignments
+
+
+
+
 if __name__ == "__main__":
     seed_ = 826
     set_seed(seed_)
@@ -162,7 +201,7 @@ if __name__ == "__main__":
     top_k_neg_per_type = 100
     nClusters = 10
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+    anchor_point = 9086
     pretrain_rounds = 200
 
     print("==================Pretraining Start==================")
@@ -177,6 +216,7 @@ if __name__ == "__main__":
 
     print("==================Clustering Start==================")
     # 1. 重新进行聚类，使用预训练后的编码器和新的聚类函数
+    """
     for client in clients:
         labels, _ = gnn_embedding_kmeans_cluster(client.data, client.encoder, n_clusters=nClusters, device=device)
         cluster_labels.append(labels)
@@ -189,7 +229,7 @@ if __name__ == "__main__":
     ]
 
     anchor_raw = read_anchors(anchor_path)
-    anchor_pairs = parse_anchors(anchor_raw, point=9086)
+    anchor_pairs = parse_anchors(anchor_raw, point=anchor_point)
 
     clients[0].encoder.eval()
     clients[1].encoder.eval()
@@ -204,6 +244,9 @@ if __name__ == "__main__":
     alignment2 = extract_clear_alignments(co_matrix, min_ratio=0.25, min_count=30, mode=2)
     edge_alignment1 = build_edge_type_alignment(alignment1, nClusters)
     edge_alignment2 = build_edge_type_alignment(alignment2, nClusters)
+    """
+    edge_dicts, client_pos_edges, edge_alignments = Cluster_and_Build(clients, anchor_point, nClusters, device)
+    edge_alignment1, edge_alignment2 = edge_alignments[0], edge_alignments[1]
 
     best_f1 = -1
     best_encoder_state = None
