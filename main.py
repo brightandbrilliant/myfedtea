@@ -137,7 +137,7 @@ def pretrain_fedavg(clients, pretrain_rounds, training_params):
     return
 
 
-def Cluster_and_Build(clients, anchor_point, nClusters, device):
+def Cluster_and_Build(clients, anchor_path, anchor_point, nClusters, device):
     cluster_labels = []
 
     print("==================Clustering Start==================")
@@ -171,7 +171,7 @@ def Cluster_and_Build(clients, anchor_point, nClusters, device):
     edge_alignment2 = build_edge_type_alignment(alignment2, nClusters)
     edge_alignments = [edge_alignment1, edge_alignment2]
 
-    return edge_dicts, client_pos_edges, edge_alignments
+    return cluster_labels, edge_dicts, client_pos_edges, edge_alignments
 
 
 
@@ -212,11 +212,11 @@ if __name__ == "__main__":
 
     pretrain_fedavg(clients, pretrain_rounds, training_params)
 
+    # 1. 重新进行聚类，使用预训练后的编码器和新的聚类函数
+    """
     cluster_labels = []
 
     print("==================Clustering Start==================")
-    # 1. 重新进行聚类，使用预训练后的编码器和新的聚类函数
-    """
     for client in clients:
         labels, _ = gnn_embedding_kmeans_cluster(client.data, client.encoder, n_clusters=nClusters, device=device)
         cluster_labels.append(labels)
@@ -245,8 +245,7 @@ if __name__ == "__main__":
     edge_alignment1 = build_edge_type_alignment(alignment1, nClusters)
     edge_alignment2 = build_edge_type_alignment(alignment2, nClusters)
     """
-    edge_dicts, client_pos_edges, edge_alignments = Cluster_and_Build(clients, anchor_point, nClusters, device)
-    edge_alignment1, edge_alignment2 = edge_alignments[0], edge_alignments[1]
+
 
     best_f1 = -1
     best_encoder_state = None
@@ -264,6 +263,10 @@ if __name__ == "__main__":
     fn_fp_ignore_flags = [False, False]
     start_rnd = 300
 
+    cluster_labels, edge_dicts, client_pos_edges, edge_alignments = Cluster_and_Build(clients, anchor_path,
+                                                                      anchor_point, nClusters, device)
+    edge_alignment1, edge_alignment2 = edge_alignments[0], edge_alignments[1]
+
     print("\n================ Federated Training Start ================")
     for rnd in range(1, num_rounds + 1):
         print(f"\n--- Round {rnd} ---")
@@ -271,6 +274,13 @@ if __name__ == "__main__":
         clients[0].encoder.eval()
         clients[1].encoder.eval()
         z_others = [client.encoder(client.data.x, client.data.edge_index).detach() for client in clients]
+
+        if rnd % start_rnd == 0:
+            cluster_labels, edge_dicts, client_pos_edges, edge_alignments = Cluster_and_Build(clients, anchor_path,
+                                                                                              anchor_point, nClusters,
+                                                                                              device)
+            edge_alignment1, edge_alignment2 = edge_alignments[0], edge_alignments[1]
+
 
         for i, client in enumerate(clients):
             if rnd >= start_rnd and fn_fp_ignore_flags[i] is False:
@@ -352,7 +362,6 @@ if __name__ == "__main__":
                 client.last_decoder_state = {k: v.cpu().clone() for k, v in decoder_states[i].items()}
 
         avg_acc, avg_recall, avg_prec, avg_f1 = evaluate_all_clients(clients, use_test=True)
-
 
         if avg_f1 > best_f1:
             best_f1 = avg_f1
