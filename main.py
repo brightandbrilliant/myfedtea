@@ -137,7 +137,7 @@ def pretrain_fedavg(clients, pretrain_rounds, training_params):
     return
 
 
-def Cluster_and_Build(clients, anchor_path, anchor_point, nClusters, device):
+def Cluster_and_Build(clients, anchor_path, anchor_point, device):
     num_clients = len(clients)
     cluster_labels = []
     all_z = []
@@ -232,7 +232,7 @@ if __name__ == "__main__":
     start_rnd = 300
 
     cluster_labels, edge_dicts, client_pos_edges, edge_alignments = Cluster_and_Build(clients, anchor_path,
-                                                                      anchor_point, nClusters, device)
+                                                                      anchor_point,  device)
     edge_alignment1, edge_alignment2 = edge_alignments[0], edge_alignments[1]
 
     print("\n================ Federated Training Start ================")
@@ -245,8 +245,7 @@ if __name__ == "__main__":
 
         if rnd >= start_rnd and rnd % (enhance_interval*5) == 0:
             cluster_labels, edge_dicts, client_pos_edges, edge_alignments = Cluster_and_Build(clients, anchor_path,
-                                                                                              anchor_point, nClusters,
-                                                                                              device)
+                                                                                              anchor_point,device)
             edge_alignment1, edge_alignment2 = edge_alignments[0], edge_alignments[1]
 
         for i, client in enumerate(clients):
