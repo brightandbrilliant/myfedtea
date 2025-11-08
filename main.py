@@ -168,7 +168,7 @@ def Cluster_and_Build(clients, anchor_path, anchor_point, device):
     results = compute_anchor_embedding_differences(z1, z2, anchor_pairs, device=device)
 
     print("==================Alignment Start==================")
-    co_matrix = build_cluster_cooccurrence_matrix(cluster_labels[0], cluster_labels[1], results,
+    co_matrix, K1, K2 = build_cluster_cooccurrence_matrix(cluster_labels[0], cluster_labels[1], results,
                                                   top_percent=0.75)
     alignment1 = extract_clear_alignments(co_matrix, min_ratio=0.25, min_count=30, mode=1)
     alignment2 = extract_clear_alignments(co_matrix, min_ratio=0.25, min_count=30, mode=2)
