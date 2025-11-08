@@ -257,30 +257,57 @@ def gnn_embedding_spectral_cluster(data, encoder, n_clusters=10, device='cpu'):
 
 
 def build_cluster_cooccurrence_matrix(cluster_labels1, cluster_labels2, anchor_pairs,
-                                      num_clusters, top_percent):
+                                      top_percent=0.75):
     """
-    构建聚类共现计数矩阵。
+    构建聚类共现计数矩阵（支持 K1 != K2）。
 
     Args:
-        cluster_labels1: 图1所有节点的聚类标签（list 或 array）
+        cluster_labels1: 图1所有节点的聚类标签（NumPy array 或 list）
         cluster_labels2: 图2所有节点的聚类标签
-        anchor_pairs: 筛选后的锚点对 [[i, j, diff], ...]
-        num_clusters: 聚类类别总数 k
+        anchor_pairs: 锚点对 [[i, j, diff], ...]
+        top_percent: 保留相似度前 top_percent 的锚点对
 
     Returns:
-        matrix: ndarray，形状为 [k, k]，matrix[i][j] 表示图1第i类与图2第j类之间的锚点对数
+        matrix: ndarray，形状为 [K1, K2]
+        K1: 图1类数
+        K2: 图2类数
     """
+    labels1 = np.array(cluster_labels1)
+    labels2 = np.array(cluster_labels2)
+
+    if labels1.size == 0 or labels2.size == 0:
+        raise ValueError("Empty cluster labels in build_cluster_cooccurrence_matrix.")
+
+    K1 = int(labels1.max()) + 1
+    K2 = int(labels2.max()) + 1
+
+    if not anchor_pairs:
+        return np.zeros((K1, K2), dtype=int), K1, K2
+
     results_sorted = sorted(anchor_pairs, key=lambda x: x[2])
-    cutoff = int(len(results_sorted) * top_percent)
+    cutoff = max(1, int(len(results_sorted) * top_percent))
     filtered = results_sorted[:cutoff]
-    matrix = np.zeros((num_clusters, num_clusters), dtype=int)
+
+    matrix = np.zeros((K1, K2), dtype=int)
 
     for idx1, idx2, _ in filtered:
-        c1 = cluster_labels1[idx1]
-        c2 = cluster_labels2[idx2]
-        matrix[c1][c2] += 1
+        try:
+            idx1_i = int(idx1)
+            idx2_i = int(idx2)
+        except Exception:
+            continue
 
-    return matrix
+        if idx1_i < 0 or idx1_i >= len(labels1) or idx2_i < 0 or idx2_i >= len(labels2):
+            continue
+
+        c1 = int(labels1[idx1_i])
+        c2 = int(labels2[idx2_i])
+        if c1 < 0 or c1 >= K1 or c2 < 0 or c2 >= K2:
+            continue
+
+        matrix[c1, c2] += 1
+
+    return matrix, K1, K2
 
 
 def extract_clear_alignments(M, min_ratio=0.3, min_count=30, mode=1):
