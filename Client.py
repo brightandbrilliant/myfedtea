@@ -117,7 +117,8 @@ class Client:
         pos_pred_aug = self.decoder(z_u_aug, z_v_aug)
         labels_aug = torch.full((pos_pred_aug.size(0),), self.soft_classify, device=self.device)
 
-        loss_aug = self.criterion(pos_pred_aug.squeeze(), labels_aug)
+        # loss_aug = self.criterion(pos_pred_aug.squeeze(), labels_aug)
+        loss_aug = self.criterion(pos_pred_aug.view(-1), labels_aug.view(-1).float())
         print(f"Positive loss:{loss_aug}")
 
         # 【修改】只使用增强损失
@@ -151,7 +152,8 @@ class Client:
         neg_pred_aug = self.decoder(z_u_aug, z_v_aug)
         labels_aug = torch.full((neg_pred_aug.size(0),), 1-self.soft_classify, device=self.device)
 
-        loss_aug = self.criterion(neg_pred_aug.squeeze(), labels_aug)
+        # loss_aug = self.criterion(neg_pred_aug.squeeze(), labels_aug)
+        loss_aug = self.criterion(neg_pred_aug.view(-1), labels_aug.view(-1).float())
         print(f"Negative loss:{loss_aug}")
 
         # 【修改】只使用增强损失
